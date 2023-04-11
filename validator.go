@@ -11,39 +11,49 @@ import (
 	"github.com/holyheld/gaelogrus"
 )
 
+// Validator is a helper struct that provides with convenience method and ERC1271-compliant validate function
 type Validator struct {
 	client           bind.ContractCaller
 	validatorAddress common.Address
 	sig              []byte
 }
 
+// NewERC1271Validator creates a new Validator instance
 func NewERC1271Validator(client bind.ContractCaller) *Validator {
 	return &Validator{
 		client: client,
-		sig:    validSignature,
+		sig:    ValidSignature,
 	}
 }
 
+// WithCustomValidSignatureHex sets custom valid signature (magic value to compare the results against) using hex (string) value
 func (v *Validator) WithCustomValidSignatureHex(signature string) *Validator {
 	v.sig = common.FromHex(signature)
 	return v
 }
 
+// WithCustomValidSignature sets custom valid signature (magic value to compare the results against) using byte slice value
 func (v *Validator) WithCustomValidSignature(signature []byte) *Validator {
 	v.sig = signature
 	return v
 }
 
+// WithValidatorAddressHex sets validator address (target contract validator address) using hex (string) value
 func (v *Validator) WithValidatorAddressHex(address string) *Validator {
 	v.validatorAddress = common.HexToAddress(address)
 	return v
 }
 
+// WithValidatorAddress sets validator address (target contract validator address) using common.Address value
 func (v *Validator) WithValidatorAddress(address common.Address) *Validator {
 	v.validatorAddress = address
 	return v
 }
 
+// Validate performs all the necessary checks to tell if the signature is valid from ERC1271 standpoint
+//
+// Handles obvious contract (response) related errors internally, error value should be used to check if the RPC
+// connection is established properly
 func (v *Validator) Validate(ctx context.Context, message []byte, signer string, signature string) (bool, error) {
 	logger := gaelogrus.GetLogger(ctx).WithField("func", "Validate")
 	validatorAddress := common.HexToAddress(signer)
