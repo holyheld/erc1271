@@ -73,7 +73,7 @@ func main() {
 		"customValidSignature": customValidSignature,
 	}).Debug("arguments")
 
-	validator := erc1271.NewERC1271Validator(client)
+	validator := erc1271.NewValidator(client)
 
 	if validatorAddress != "" {
 		validator = validator.WithValidatorAddressHex(validatorAddress)

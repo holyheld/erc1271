@@ -53,7 +53,7 @@ func TestValidate(t *testing.T) {
 		},
 	}
 
-	validator := NewERC1271Validator(client)
+	validator := NewValidator(client)
 	for i, test := range tests {
 		valid, err := validator.Validate(
 			ctx,

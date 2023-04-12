@@ -18,8 +18,8 @@ type Validator struct {
 	sig              []byte
 }
 
-// NewERC1271Validator creates a new Validator instance
-func NewERC1271Validator(client bind.ContractCaller) *Validator {
+// NewValidator creates a new Validator instance
+func NewValidator(client bind.ContractCaller) *Validator {
 	return &Validator{
 		client: client,
 		sig:    ValidSignature,
