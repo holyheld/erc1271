@@ -57,7 +57,7 @@ func (v *Validator) WithValidatorAddress(address common.Address) *Validator {
 func (v *Validator) Validate(ctx context.Context, message []byte, signer string, signature string) (bool, error) {
 	logger := gaelogrus.GetLogger(ctx).WithField("func", "Validate")
 	validatorAddress := common.HexToAddress(signer)
-	if len(v.validatorAddress.Bytes()) > 0 {
+	if !IsZeroAddress(v.validatorAddress) {
 		validatorAddress = v.validatorAddress
 	}
 	code, err := v.client.CodeAt(ctx, validatorAddress, nil)
