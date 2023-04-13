@@ -3,7 +3,6 @@ package erc1271
 import (
 	"bytes"
 	"context"
-
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -13,16 +12,18 @@ import (
 
 // Validator is a helper struct that provides with convenience method and ERC1271-compliant validate function
 type Validator struct {
-	client           bind.ContractCaller
-	validatorAddress common.Address
-	sig              []byte
+	client              bind.ContractCaller
+	validatorAddress    common.Address
+	sig                 []byte
+	skipIsContractCheck bool
 }
 
 // NewValidator creates a new Validator instance
 func NewValidator(client bind.ContractCaller) *Validator {
 	return &Validator{
-		client: client,
-		sig:    ValidSignature,
+		client:              client,
+		sig:                 ValidSignature,
+		skipIsContractCheck: false,
 	}
 }
 
@@ -50,6 +51,23 @@ func (v *Validator) WithValidatorAddress(address common.Address) *Validator {
 	return v
 }
 
+// WithSkipIsContractCheck sets internal skip flag to not perform CodeAt(validatorAddress) check
+func (v *Validator) WithSkipIsContractCheck(skip bool) *Validator {
+	v.skipIsContractCheck = skip
+	return v
+}
+
+// IsContractHex checks if validatorAddress is smart contract using hex (string) value
+func (v *Validator) IsContractHex(ctx context.Context, validatorAddress string) (bool, error) {
+	return v.IsContract(ctx, common.HexToAddress(validatorAddress))
+}
+
+// IsContract checks if validator address is smart contract using common.Address value
+func (v *Validator) IsContract(ctx context.Context, validatorAddress common.Address) (bool, error) {
+	code, err := v.client.CodeAt(ctx, validatorAddress, nil)
+	return len(code) > 0, err
+}
+
 // Validate performs all the necessary checks to tell if the signature is valid from ERC1271 standpoint
 //
 // Handles obvious contract (response) related errors internally, error value should be used to check if the RPC
@@ -60,16 +78,18 @@ func (v *Validator) Validate(ctx context.Context, message []byte, signer string,
 	if !IsZeroAddress(v.validatorAddress) {
 		validatorAddress = v.validatorAddress
 	}
-	code, err := v.client.CodeAt(ctx, validatorAddress, nil)
-	if err != nil {
-		logger.WithField("address", validatorAddress).WithError(err).Debug("failed to check code at address")
-		return false, err
-	}
 
-	isContract := len(code) > 0
-	if !isContract {
-		logger.WithField("address", validatorAddress).Debug("specified address is not a contract")
-		return false, nil
+	if !v.skipIsContractCheck {
+		isContract, err := v.IsContract(ctx, validatorAddress)
+		if err != nil {
+			logger.WithField("address", validatorAddress).WithError(err).Debug("failed to check if validatorAddress is contract")
+			return false, err
+		}
+
+		if !isContract {
+			logger.WithField("address", validatorAddress).Debug("specified address is not a contract")
+			return false, nil
+		}
 	}
 
 	caller, err := NewContractCaller(validatorAddress, v.client)
